@@ -26,7 +26,8 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog";
-import { useDocumentInbox, InboxDocument, Contract } from "@/hooks/useDocumentInbox";
+import { useDocumentInbox } from "@/hooks/useDocumentInbox";
+import type { InboxDocument, Contract } from "@/hooks/useDocumentInbox";
 import { useClients } from "@/hooks/useClients";
 import { useTeamMembers } from "@/hooks/useTeamMembers";
 import { useSoftwareItems } from "@/hooks/useSoftwareCosts";
@@ -66,7 +67,8 @@ export default function DocumentInboxPage() {
 
   const { clients } = useClients();
   const { teamMembers } = useTeamMembers();
-  const { softwareItems } = useSoftwareItems();
+  // Software items available for bank statement matching
+  const { softwareItems: _softwareItems } = useSoftwareItems();
 
   // Review dialog state
   const [reviewingDoc, setReviewingDoc] = useState<InboxDocument | null>(null);
