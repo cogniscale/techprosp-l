@@ -37,7 +37,7 @@ async function createGoogleAuthToken(serviceAccount: GoogleServiceAccount): Prom
   const now = Math.floor(Date.now() / 1000);
   const claim = {
     iss: serviceAccount.client_email,
-    scope: "https://www.googleapis.com/auth/drive.readonly",
+    scope: "https://www.googleapis.com/auth/drive",
     aud: "https://oauth2.googleapis.com/token",
     exp: now + 3600,
     iat: now,
@@ -121,6 +121,32 @@ async function findFolderByName(
 
   const data = await response.json();
   return data.files?.[0]?.id || null;
+}
+
+async function createFolder(
+  accessToken: string,
+  folderName: string,
+  parentId: string
+): Promise<string> {
+  const response = await fetch("https://www.googleapis.com/drive/v3/files", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      name: folderName,
+      mimeType: "application/vnd.google-apps.folder",
+      parents: [parentId],
+    }),
+  });
+
+  if (!response.ok) {
+    throw new Error(`Failed to create folder: ${await response.text()}`);
+  }
+
+  const data = await response.json();
+  return data.id;
 }
 
 async function getFileContent(accessToken: string, fileId: string): Promise<string> {
@@ -236,15 +262,36 @@ Deno.serve(async (req) => {
       throw new Error("inbox folder not found in TechPros Shared");
     }
 
-    // Find subfolders
-    const salesFolderId = await findFolderByName(accessToken, "sales", inboxFolderId);
-    const costsFolderId = await findFolderByName(accessToken, "costs", inboxFolderId);
-    const bankFolderId = await findFolderByName(accessToken, "bank_statements", inboxFolderId);
+    // Structure is: inbox/YYYY-MM/sales, inbox/YYYY-MM/costs, inbox/YYYY-MM/bank_statements
+    // Find the month folder (e.g., 2026-01)
+    const monthFolderId = await findFolderByName(accessToken, month, inboxFolderId);
+    if (!monthFolderId) {
+      // Create month folder if it doesn't exist
+      const newMonthFolderId = await createFolder(accessToken, month, inboxFolderId);
+      // Create subfolders
+      await createFolder(accessToken, "sales", newMonthFolderId);
+      await createFolder(accessToken, "costs", newMonthFolderId);
+      await createFolder(accessToken, "bank_statements", newMonthFolderId);
+
+      return new Response(
+        JSON.stringify({
+          success: true,
+          newDocuments: 0,
+          message: `Created folder structure for ${month}. Add documents and scan again.`,
+        }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // Find subfolders within the month folder
+    const salesFolderId = await findFolderByName(accessToken, "sales", monthFolderId);
+    const costsFolderId = await findFolderByName(accessToken, "costs", monthFolderId);
+    const bankFolderId = await findFolderByName(accessToken, "bank_statements", monthFolderId);
 
     const foldersToScan = [
-      { id: salesFolderId, path: "inbox/sales", category: "sales_invoice" },
-      { id: costsFolderId, path: "inbox/costs", category: "cost_invoice" },
-      { id: bankFolderId, path: "inbox/bank_statements", category: "bank_statement" },
+      { id: salesFolderId, path: `inbox/${month}/sales`, category: "sales_invoice" },
+      { id: costsFolderId, path: `inbox/${month}/costs`, category: "cost_invoice" },
+      { id: bankFolderId, path: `inbox/${month}/bank_statements`, category: "bank_statement" },
     ].filter((f) => f.id);
 
     let newDocuments = 0;

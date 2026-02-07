@@ -60,17 +60,21 @@ The Document Inbox is the primary way to import financial documents into the sys
 
 ### Google Drive Folder Structure
 
-All documents go into the shared Google Drive:
+All documents go into the shared Google Drive, organised by month:
 ```
 TechPros Shared/
 ├── inbox/
-│   ├── sales/           ← Client invoices (PDFs from Xero)
-│   ├── costs/           ← Contractor invoices
-│   └── bank_statements/ ← Monthly bank statements (CSV)
-├── contracts/           ← Active SOWs and contracts (reference)
-├── processed/           ← Automatically moved after import
-│   └── 2026-01/         ← Organised by month
-└── context/             ← Other reference documents
+│   └── 2026-01/              ← One folder per month
+│       ├── sales/            ← Client invoices (PDFs from Xero)
+│       ├── costs/            ← Contractor invoices
+│       └── bank_statements/  ← Monthly bank statements (CSV)
+├── processed/
+│   └── 2026-01/              ← Mirrors inbox structure
+│       ├── sales/
+│       ├── costs/
+│       └── bank_statements/
+├── contracts/                ← Active SOWs and contracts (reference)
+└── context/                  ← Other reference documents
 ```
 
 ### Monthly Workflow
