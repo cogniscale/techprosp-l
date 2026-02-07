@@ -1,0 +1,48 @@
+@import url("https://fonts.googleapis.com/css2?family=Raleway:wght@400;500;600;700&family=Work+Sans:wght@400;500;600&display=swap");
+@import "tailwindcss";
+
+@theme {
+  /* TechPros Brand Colors */
+  --color-tp-dark: #2D2A50;
+  --color-tp-dark-grey: #6C6A84;
+  --color-tp-light-grey: #E2E1E6;
+  --color-tp-light: #F4F4F6;
+  --color-tp-blue: #046B99;
+  --color-tp-green: #1B7B86;
+  --color-tp-purple: #6C3075;
+
+  /* Semantic */
+  --color-success: #1B7B86;
+  --color-warning: #f59e0b;
+  --color-error: #ef4444;
+
+  /* Typography */
+  --font-heading: "Raleway", sans-serif;
+  --font-body: "Work Sans", sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  font-size: 14px;
+}
+
+body {
+  font-family: var(--font-body);
+  background-color: var(--color-tp-light);
+  color: var(--color-tp-dark);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  line-height: 1.5;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-heading);
+}
+
+:focus-visible {
+  outline: 2px solid var(--color-tp-blue);
+  outline-offset: 2px;
+}
