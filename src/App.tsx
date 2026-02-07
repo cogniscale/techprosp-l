@@ -18,6 +18,7 @@ import { QuarterlySummaryPage } from "@/pages/QuarterlySummaryPage";
 import { ScorecardPage } from "@/pages/ScorecardPage";
 import { CogniScaleFeesPage } from "@/pages/CogniScaleFeesPage";
 import { DocumentsPage } from "@/pages/DocumentsPage";
+import DocumentInboxPage from "@/pages/DocumentInboxPage";
 import { SettingsPage } from "@/pages/SettingsPage";
 import { ROUTES } from "@/constants/routes";
 
@@ -58,7 +59,8 @@ function App() {
                 <Route path={ROUTES.SCORECARD} element={<ScorecardPage />} />
                 <Route path={ROUTES.COGNISCALE_FEES} element={<CogniScaleFeesPage />} />
                 <Route path={ROUTES.DOCUMENTS} element={<DocumentsPage />} />
-                                <Route path={ROUTES.SETTINGS} element={<SettingsPage />} />
+                <Route path={ROUTES.INBOX} element={<DocumentInboxPage />} />
+                <Route path={ROUTES.SETTINGS} element={<SettingsPage />} />
               </Route>
             </Route>
           </Routes>

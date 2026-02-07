@@ -14,6 +14,7 @@ This guide covers everything you need to know to use the TechPros Admin system f
 ### Navigation
 The left sidebar contains all main sections:
 - **Dashboard** - Financial overview and KPIs
+- **Document Inbox** - Process invoices and bank statements from Google Drive
 - **Sales Revenue** - Invoices and revenue tracking
 - **Activities** - CogniScale activities
 - **Costs** - HR, Software, and Travel costs
@@ -50,6 +51,72 @@ Shows the profit calculation:
 
 ### Operating Costs
 Breakdown of HR, Software, and Travel costs.
+
+---
+
+## Document Inbox (Main Workflow)
+
+The Document Inbox is the primary way to import financial documents into the system. Documents are synced from Google Drive.
+
+### Google Drive Folder Structure
+
+All documents go into the shared Google Drive:
+```
+TechPros Shared/
+├── inbox/
+│   ├── sales/           ← Client invoices (PDFs from Xero)
+│   ├── costs/           ← Contractor invoices
+│   └── bank_statements/ ← Monthly bank statements (CSV)
+├── contracts/           ← Active SOWs and contracts (reference)
+├── processed/           ← Automatically moved after import
+│   └── 2026-01/         ← Organised by month
+└── context/             ← Other reference documents
+```
+
+### Monthly Workflow
+
+1. **Save documents to Google Drive** - Put invoices and statements in the appropriate inbox folder
+2. **Go to Document Inbox** in the app
+3. **Click "Scan Drive"** - System finds new documents
+4. **Review each document**:
+   - For **Sales Invoices**: Set how many months to spread the revenue
+   - For **Cost Invoices**: Confirm the team member
+   - For **Bank Statements**: Review matched software transactions
+5. **Click Import** - Data is recorded in the system
+6. **Files automatically move** to the `processed/` folder
+
+### Processing Sales Invoices
+
+When you review a sales invoice:
+1. System extracts: Client, Amount, Invoice Date, Invoice Number
+2. **You decide**: How many months to spread the revenue
+3. **You set**: Which month to start recognition
+4. **Preview**: See the monthly amount (e.g., £12,000 ÷ 12 = £1,000/month)
+5. Click **Import Invoice** → Revenue recognition entries are created
+
+### Processing Cost Invoices (Contractors)
+
+When you review a contractor invoice:
+1. System extracts: Supplier name, Amount, Period
+2. System suggests: Which team member this matches
+3. **You confirm**: The team member and amount
+4. Click **Import Cost** → HR cost is recorded
+
+### Processing Bank Statements
+
+When you review a bank statement:
+1. System parses all transactions
+2. System matches transactions to software subscriptions
+3. Shows: ✓ Matched items, ⚠ Variances from default, ? Unmatched
+4. **You review**: Confirm matches are correct
+5. Click **Import** → Software costs are recorded for the month
+
+### Reference Contracts
+
+The sidebar shows active contracts and SOWs for reference. Use these to:
+- Check contract terms when setting revenue spread
+- Verify monthly values match the agreement
+- Link invoices to their parent contract
 
 ---
 
@@ -291,38 +358,54 @@ The chat panel (bottom of every page) is your AI assistant for data entry and qu
 
 ## Common Workflows
 
-### Monthly: Recording Contractor Costs
-1. Receive contractor invoice (PDF)
-2. Drop it in the chat
-3. AI extracts: supplier, amount, period
-4. AI matches supplier to team member
-5. Confirm: "Yes, record as [Name]'s cost for [Month]"
-6. Cost appears in HR Costs and P&L
+### Month-End Process (Recommended Order)
 
-### Monthly: Recording Software Costs
-1. Download bank statement (CSV)
-2. Drop in chat
-3. AI parses and matches transactions
-4. Review the matches shown
-5. Confirm: "Yes, record all"
-6. Costs appear in Software Costs and P&L
+1. **Gather Documents**
+   - Save all client invoices (from Xero) to `inbox/sales/`
+   - Save all contractor invoices to `inbox/costs/`
+   - Download bank statement and save to `inbox/bank_statements/`
 
-### Monthly: Creating Client Invoice
-1. Go to **Sales Revenue**
-2. Click **+** to add invoice
-3. Enter details and spread period
-4. Invoice creates revenue recognition entries
-5. Revenue appears in P&L for those months
+2. **Process in Document Inbox**
+   - Go to **Document Inbox**
+   - Click **Scan Drive** to find new documents
+   - Process each document type:
 
-### Monthly: Financial Review
-1. Go to **P&L**
-2. Select the month
-3. Review:
-   - Actual vs Forecast revenue
-   - All costs
-   - Gross Profit and Profit Pool
-   - Your 12% share
-4. Identify any variances to investigate
+3. **Import Sales Invoices**
+   - Review each invoice
+   - Set months to spread (check contract for terms)
+   - Set recognition start month
+   - Click **Import**
+
+4. **Import Cost Invoices**
+   - Review contractor invoices
+   - Confirm team member match
+   - Verify amount
+   - Click **Import**
+
+5. **Import Bank Statement**
+   - Review matched software transactions
+   - Verify matches are correct
+   - Handle any unmatched items
+   - Click **Import**
+
+6. **Verify in P&L**
+   - Go to **P&L** page
+   - Check the month's figures
+   - Confirm revenue and costs are correct
+   - Review Profit Pool and your share
+
+### Alternative: Quick Entry via Chat
+
+For quick one-off entries, you can still use the chat panel:
+- Drop a contractor invoice → AI extracts and records
+- Drop a bank statement → AI matches and records
+- Type "Yes" to confirm
+
+### Weekly: Check Dashboard
+
+- Review KPIs and pending invoices
+- Check for any outstanding items
+- Monitor Profit Pool status
 
 ---
 
@@ -350,11 +433,13 @@ The chat panel (bottom of every page) is your AI assistant for data entry and qu
 
 ## Tips
 
-1. **Use the chat** for quick data entry - it's faster than clicking through forms
-2. **Check the P&L monthly** to ensure costs are recorded correctly
-3. **Drop bank statements in chat** to bulk-record software costs
-4. **Set forecasts early** so you can track variance throughout the year
-5. **Review the Dashboard** for a quick health check of the business
+1. **Use Document Inbox** for month-end processing - it's the most efficient way to import all documents
+2. **Save documents to the right folder** - sales invoices go to `inbox/sales/`, costs to `inbox/costs/`
+3. **Name files with the month** - e.g., `Aamir-Jan-2026.pdf` helps auto-detect the period
+4. **Check contracts** when setting revenue spread - make sure it matches the agreement
+5. **Review P&L after importing** - verify all figures before month-end close
+6. **Use the chat** for quick one-off entries or questions
+7. **Set forecasts early** so you can track variance throughout the year
 
 ---
 

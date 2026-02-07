@@ -14,5 +14,6 @@ export const ROUTES = {
   SCORECARD: "/scorecard",
   COGNISCALE_FEES: "/cogniscale-fees",
   DOCUMENTS: "/documents",
+  INBOX: "/inbox",
   SETTINGS: "/settings",
 } as const;

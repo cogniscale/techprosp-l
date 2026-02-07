@@ -18,6 +18,7 @@ import {
   Calendar,
   Award,
   Calculator,
+  Inbox,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ROUTES } from "@/constants/routes";
@@ -31,6 +32,7 @@ interface NavItem {
 
 const navigation: NavItem[] = [
   { name: "Dashboard", href: ROUTES.DASHBOARD, icon: LayoutDashboard },
+  { name: "Document Inbox", href: ROUTES.INBOX, icon: Inbox },
   { name: "Sales Revenue", href: ROUTES.INVOICES, icon: TrendingUp },
   { name: "Activities", href: ROUTES.ACTIVITIES, icon: Activity },
   {
