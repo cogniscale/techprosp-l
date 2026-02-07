@@ -22,7 +22,7 @@ interface MatchedRow extends CSVRow {
   matchedId: string | null;
   matchedName: string | null;
   confidence: "exact" | "fuzzy" | "none";
-  createNew?: boolean;
+  createNew: boolean;
 }
 
 interface ExistingItem {
@@ -303,19 +303,15 @@ export function CSVImportDialog({
               <p className="text-sm text-tp-dark-grey mb-4">
                 Upload a CSV with columns: <strong>Name</strong>, <strong>Month</strong>, <strong>Amount</strong>
               </p>
-              <label className="cursor-pointer">
+              <label className="cursor-pointer inline-flex items-center justify-center gap-2 whitespace-nowrap text-sm font-medium transition-colors border border-tp-light-grey bg-white hover:bg-tp-light text-tp-dark h-10 px-4 py-2 rounded-lg">
                 <Input
                   type="file"
                   accept=".csv"
                   onChange={handleFileSelect}
                   className="hidden"
                 />
-                <Button variant="outline" asChild>
-                  <span>
-                    <Upload className="h-4 w-4 mr-2" />
-                    Select CSV File
-                  </span>
-                </Button>
+                <Upload className="h-4 w-4" />
+                Select CSV File
               </label>
             </div>
 

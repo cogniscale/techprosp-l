@@ -226,8 +226,8 @@ export function SoftwareCostsPage() {
           default_monthly_cost: row.amount,
           techpros_allocation_percent: 100,
         });
-        if (result.success && result.item) {
-          itemId = result.item.id;
+        if (result.success && result.softwareItem) {
+          itemId = result.softwareItem.id;
         } else {
           continue;
         }
@@ -251,7 +251,7 @@ export function SoftwareCostsPage() {
       default_monthly_cost: 0,
       techpros_allocation_percent: 100,
     });
-    return result.success && result.item ? result.item.id : null;
+    return result.success && result.softwareItem ? result.softwareItem.id : null;
   };
 
   // Calculate totals (using effective allocation which may be overridden)

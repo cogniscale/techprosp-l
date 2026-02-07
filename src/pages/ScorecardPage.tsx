@@ -1,8 +1,7 @@
 import { useState } from "react";
-import { Target, TrendingUp, TrendingDown, Minus, Calendar } from "lucide-react";
+import { TrendingUp, TrendingDown, Minus, Calendar } from "lucide-react";
 import { PageContainer } from "@/components/layout/PageContainer";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useScorecard } from "@/hooks/useScorecard";
 import { formatGBP } from "@/lib/formatters";

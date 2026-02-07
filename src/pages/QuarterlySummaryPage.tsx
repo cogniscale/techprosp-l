@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { ChevronLeft, ChevronRight, TrendingUp, TrendingDown, Target } from "lucide-react";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 import { PageContainer } from "@/components/layout/PageContainer";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useActivityMetrics, useActivityValues } from "@/hooks/useKPIs";

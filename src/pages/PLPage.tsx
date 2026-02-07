@@ -71,7 +71,8 @@ export function PLPage() {
   const forecastRevenue = forecastsByMonth[monthKey] || { total: 0, byClient: {} };
   const hrData = hrCostsByMonth[monthKey] || { baseCost: 0, bonus: 0, total: 0, byMember: {} };
   const softwareData = softwareCostsByMonth[monthKey] || { total: 0, byItem: {} };
-  const travelCost = travelCostsByMonth[monthKey] || 375;
+  const travelData = travelCostsByMonth[monthKey] || { total: 375, budget: 375, actual: 0, isReconciled: false };
+  const travelCost = travelData.total;
   const centralOverhead = getOverheadForMonth(monthKey);
 
   // Calculate costs
@@ -573,7 +574,8 @@ function AnnualPLSpreadsheet({
     const forecast = forecastsByMonth[monthKey] || { total: 0, byClient: {} };
     const hr = hrCostsByMonth[monthKey] || { total: 0, byMember: {} };
     const software = softwareCostsByMonth[monthKey] || { total: 0 };
-    const travel = travelCostsByMonth[monthKey] || 375;
+    const travelObj = travelCostsByMonth[monthKey] || { total: 375, budget: 375, actual: 0, isReconciled: false };
+    const travel = travelObj.total;
     const overhead = getOverheadForMonth(monthKey);
 
     const totalCosts = hr.total + software.total + travel;

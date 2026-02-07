@@ -151,7 +151,7 @@ export function KPIsPage() {
   const activityGroups = groupByCategory(activityMetrics);
 
   const renderTable = (
-    metrics: (KPIMetric | ActivityMetric)[],
+    _metrics: (KPIMetric | ActivityMetric)[],
     lookup: Record<string, Record<string, { target: number | null; actual: number | null }>>,
     groupedMetrics: Record<string, (KPIMetric | ActivityMetric)[]>
   ) => {

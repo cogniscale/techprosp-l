@@ -12,7 +12,6 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { useInvoices } from "@/hooks/useInvoices";
-import type { InvoiceWithRevenue } from "@/hooks/useInvoices";
 import { formatGBP } from "@/lib/formatters";
 
 type ViewMode = "list" | "tracker";
