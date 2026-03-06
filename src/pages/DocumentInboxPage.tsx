@@ -94,7 +94,10 @@ export default function DocumentInboxPage() {
   const handleScan = async () => {
     const result = await scanGoogleDrive();
     if (result.success) {
-      alert(`Scan complete! Found ${result.newDocuments} new documents.`);
+      const errors = result.errors as string[] | undefined;
+      const msg = `Scan complete! Found ${result.newDocuments} new documents.` +
+        (errors?.length ? `\n\nWarnings:\n${errors.join("\n")}` : "");
+      alert(msg);
     } else {
       alert(`Scan failed: ${result.error}`);
     }

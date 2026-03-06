@@ -79,7 +79,7 @@ export function useDocumentInbox(selectedMonth: string) {
         .from("documents")
         .select(`
           *,
-          linked_contract:contracts(*)
+          linked_contract:contracts!documents_linked_contract_id_fkey(*)
         `)
         .or(`applies_to_month.eq.${monthStart},and(period_start.lte.${monthStart},period_end.gte.${monthStart})`)
         .order("created_at", { ascending: false });
@@ -138,11 +138,11 @@ export function useDocumentInbox(selectedMonth: string) {
       // Refresh documents after scan
       await fetchDocuments();
 
-      return { success: true, newDocuments: data?.newDocuments || 0 };
+      return { success: true, newDocuments: data?.newDocuments || 0, errors: data?.errors };
     } catch (err) {
       const message = err instanceof Error ? err.message : "Failed to scan Google Drive";
       setError(message);
-      return { success: false, error: message };
+      return { success: false, error: message, errors: undefined };
     } finally {
       setScanning(false);
     }

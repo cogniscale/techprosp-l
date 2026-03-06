@@ -12,6 +12,94 @@ interface DocumentProcessRequest {
   documentType: "invoice" | "bank_statement" | "contract" | "contractor_invoice";
 }
 
+interface GoogleServiceAccount {
+  client_email: string;
+  private_key: string;
+}
+
+async function createGoogleAuthToken(serviceAccount: GoogleServiceAccount): Promise<string> {
+  const header = { alg: "RS256", typ: "JWT" };
+  const now = Math.floor(Date.now() / 1000);
+  const claim = {
+    iss: serviceAccount.client_email,
+    scope: "https://www.googleapis.com/auth/drive.readonly",
+    aud: "https://oauth2.googleapis.com/token",
+    exp: now + 3600,
+    iat: now,
+  };
+
+  const pemContents = serviceAccount.private_key
+    .replace(/-----BEGIN PRIVATE KEY-----/, "")
+    .replace(/-----END PRIVATE KEY-----/, "")
+    .replace(/\\n/g, "")
+    .replace(/\s/g, "");
+
+  const binaryKey = Uint8Array.from(atob(pemContents), (c) => c.charCodeAt(0));
+  const cryptoKey = await crypto.subtle.importKey(
+    "pkcs8",
+    binaryKey,
+    { name: "RSASSA-PKCS1-v1_5", hash: "SHA-256" },
+    false,
+    ["sign"]
+  );
+
+  const encoder = new TextEncoder();
+  const headerB64 = btoa(JSON.stringify(header)).replace(/=/g, "").replace(/\+/g, "-").replace(/\//g, "_");
+  const claimB64 = btoa(JSON.stringify(claim)).replace(/=/g, "").replace(/\+/g, "-").replace(/\//g, "_");
+  const signatureInput = encoder.encode(`${headerB64}.${claimB64}`);
+
+  const signature = await crypto.subtle.sign("RSASSA-PKCS1-v1_5", cryptoKey, signatureInput);
+  const signatureB64 = btoa(String.fromCharCode(...new Uint8Array(signature)))
+    .replace(/=/g, "")
+    .replace(/\+/g, "-")
+    .replace(/\//g, "_");
+
+  const jwt = `${headerB64}.${claimB64}.${signatureB64}`;
+
+  const tokenResponse = await fetch("https://oauth2.googleapis.com/token", {
+    method: "POST",
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body: `grant_type=urn:ietf:params:oauth:grant-type:jwt-bearer&assertion=${jwt}`,
+  });
+
+  const tokenData = await tokenResponse.json();
+  return tokenData.access_token;
+}
+
+async function downloadFromGoogleDrive(fileId: string): Promise<ArrayBuffer> {
+  const serviceAccountJson = Deno.env.get("GOOGLE_SERVICE_ACCOUNT");
+  if (!serviceAccountJson) {
+    throw new Error("GOOGLE_SERVICE_ACCOUNT not configured");
+  }
+  const serviceAccount = JSON.parse(serviceAccountJson) as GoogleServiceAccount;
+  const accessToken = await createGoogleAuthToken(serviceAccount);
+
+  // First get file metadata to check if it's a Google Workspace file
+  const metaResponse = await fetch(
+    `https://www.googleapis.com/drive/v3/files/${fileId}?fields=mimeType,name`,
+    { headers: { Authorization: `Bearer ${accessToken}` } }
+  );
+  const meta = await metaResponse.json();
+
+  let url: string;
+  if (meta.mimeType?.startsWith("application/vnd.google-apps.")) {
+    // Export Google Workspace files as PDF
+    url = `https://www.googleapis.com/drive/v3/files/${fileId}/export?mimeType=application/pdf`;
+  } else {
+    url = `https://www.googleapis.com/drive/v3/files/${fileId}?alt=media`;
+  }
+
+  const response = await fetch(url, {
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
+
+  if (!response.ok) {
+    throw new Error(`Failed to download from Google Drive: ${response.statusText}`);
+  }
+
+  return response.arrayBuffer();
+}
+
 Deno.serve(async (req) => {
   // Handle CORS preflight
   if (req.method === "OPTIONS") {
@@ -49,21 +137,28 @@ Deno.serve(async (req) => {
       .update({ processing_status: "processing" })
       .eq("id", documentId);
 
-    // Download file from storage
-    const { data: fileData, error: downloadError } = await supabase.storage
-      .from("documents")
-      .download(document.file_path);
+    // Download file - from Google Drive if available, otherwise Supabase storage
+    let arrayBuffer: ArrayBuffer;
 
-    if (downloadError || !fileData) {
-      throw new Error(`Failed to download file: ${downloadError?.message}`);
+    if (document.google_drive_id) {
+      arrayBuffer = await downloadFromGoogleDrive(document.google_drive_id);
+    } else {
+      const { data: fileData, error: downloadError } = await supabase.storage
+        .from("documents")
+        .download(document.file_path);
+
+      if (downloadError || !fileData) {
+        throw new Error(`Failed to download file: ${downloadError?.message}`);
+      }
+
+      arrayBuffer = await fileData.arrayBuffer();
     }
 
     // Convert to base64 for Claude
-    const arrayBuffer = await fileData.arrayBuffer();
     const base64 = btoa(String.fromCharCode(...new Uint8Array(arrayBuffer)));
 
     // Determine media type
-    const fileExtension = document.file_path.split(".").pop()?.toLowerCase();
+    const fileExtension = (document.file_path || document.file_name || "").split(".").pop()?.toLowerCase();
     let mediaType = "application/pdf";
     if (fileExtension === "png") mediaType = "image/png";
     if (fileExtension === "jpg" || fileExtension === "jpeg") mediaType = "image/jpeg";

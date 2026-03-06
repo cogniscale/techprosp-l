@@ -193,36 +193,26 @@ function detectDocumentCategory(fileName: string, folderPath: string): string {
 }
 
 function detectMonthFromFileName(fileName: string): string | null {
-  // Try various date patterns
-  const patterns = [
-    /(\d{4})-(\d{2})/, // 2026-01
-    /(\d{4})(\d{2})/, // 202601
-    /(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*[-_\s]?(\d{4})/i, // Jan-2026, January2026
-    /(\d{4})[-_\s]?(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)/i, // 2026-Jan
-  ];
-
   const monthNames: Record<string, string> = {
     jan: "01", feb: "02", mar: "03", apr: "04", may: "05", jun: "06",
     jul: "07", aug: "08", sep: "09", oct: "10", nov: "11", dec: "12",
   };
 
-  for (const pattern of patterns) {
-    const match = fileName.match(pattern);
-    if (match) {
-      if (match[1].length === 4 && /^\d+$/.test(match[2])) {
-        // YYYY-MM format
-        return `${match[1]}-${match[2].padStart(2, "0")}`;
-      }
-      if (match[1].length === 4 && monthNames[match[2].toLowerCase().slice(0, 3)]) {
-        // YYYY-Mon format
-        return `${match[1]}-${monthNames[match[2].toLowerCase().slice(0, 3)]}`;
-      }
-      if (monthNames[match[1].toLowerCase().slice(0, 3)] && match[2].length === 4) {
-        // Mon-YYYY format
-        return `${match[2]}-${monthNames[match[1].toLowerCase().slice(0, 3)]}`;
-      }
-    }
-  }
+  // YYYY-MM with valid year (2020-2030) and month (01-12), must be at word boundary
+  const ymdash = fileName.match(/\b(20[2-3]\d)-(0[1-9]|1[0-2])\b/);
+  if (ymdash) return `${ymdash[1]}-${ymdash[2]}`;
+
+  // YYYYMM (no separator) with valid ranges, must be at word boundary
+  const ymconcat = fileName.match(/\b(20[2-3]\d)(0[1-9]|1[0-2])\b/);
+  if (ymconcat) return `${ymconcat[1]}-${ymconcat[2]}`;
+
+  // Mon-YYYY or MonthYYYY (e.g. "Feb 2026", "January2026")
+  const mony = fileName.match(/\b(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*[-_\s]?(20[2-3]\d)\b/i);
+  if (mony) return `${mony[2]}-${monthNames[mony[1].toLowerCase().slice(0, 3)]}`;
+
+  // YYYY-Mon (e.g. "2026-Jan")
+  const ymon = fileName.match(/\b(20[2-3]\d)[-_\s]?(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)\b/i);
+  if (ymon) return `${ymon[1]}-${monthNames[ymon[2].toLowerCase().slice(0, 3)]}`;
 
   return null;
 }

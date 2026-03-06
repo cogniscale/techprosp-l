@@ -1,90 +1,97 @@
-import { PoundSterling, TrendingUp, Users, FileText } from "lucide-react";
+import { useState } from "react";
+import { PoundSterling, TrendingUp, Users, FileText, ChevronLeft, ChevronRight } from "lucide-react";
 import { PageContainer } from "@/components/layout/PageContainer";
 import { KPICard } from "@/components/dashboard/KPICard";
 import { ProfitPoolCard } from "@/components/dashboard/ProfitPoolCard";
 import { formatGBPRounded, formatMonthYear } from "@/lib/formatters";
 import { calculateProfitPool } from "@/lib/calculations";
-
-// TODO: Replace with real data from Supabase
-const MOCK_DATA = {
-  month: "2026-01-01",
-  revenue: {
-    total: 28500,
-    byClient: {
-      "6sense": 8000,
-      Enate: 6000,
-      Gilroy: 4500,
-      HubbubHR: 3000,
-      Amphora: 2000,
-      "CogniScale Fixed": 4236,
-      "CogniScale Variable": 764,
-    },
-  },
-  costs: {
-    total: 18200,
-    hr: 15000,
-    software: 2200,
-    travel: 1000,
-  },
-  activities: {
-    interviews: 8,
-    roundtables: 2,
-    meetings: 3,
-    surveys: 5,
-  },
-  invoices: {
-    pending: 3,
-    total: 12,
-  },
-};
+import { useMonthlyRevenue } from "@/hooks/useInvoices";
+import { useMonthlyHRCosts } from "@/hooks/useTeamMembers";
+import { useMonthlySoftwareCosts } from "@/hooks/useSoftwareCosts";
+import { useMonthlyTravelCost } from "@/hooks/useTravelCosts";
 
 export function DashboardPage() {
-  const { grossProfit, profitPool, tarynShare } = calculateProfitPool(
-    MOCK_DATA.revenue.total,
-    MOCK_DATA.costs.total
-  );
+  const now = new Date();
+  const [selectedYear, setSelectedYear] = useState(now.getFullYear());
+  const [selectedMonthIndex, setSelectedMonthIndex] = useState(now.getMonth());
 
-  const maxRevenue = Math.max(...Object.values(MOCK_DATA.revenue.byClient));
+  const monthKey = `${selectedYear}-${String(selectedMonthIndex + 1).padStart(2, "0")}`;
+  const monthDate = `${monthKey}-01`;
+
+  const { revenueByMonth, loading: revLoading } = useMonthlyRevenue(selectedYear);
+  const { monthlyTotals: hrTotals, loading: hrLoading } = useMonthlyHRCosts(selectedYear);
+  const { monthlyTotals: softwareTotals, loading: swLoading } = useMonthlySoftwareCosts(selectedYear);
+  const { monthlyTotals: travelTotals, loading: trLoading } = useMonthlyTravelCost(selectedYear);
+
+  const loading = revLoading || hrLoading || swLoading || trLoading;
+
+  const revenue = revenueByMonth[monthKey]?.total || 0;
+  const revenueByClient = revenueByMonth[monthKey]?.byClient || {};
+
+  // Actuals only for operating costs
+  const hrActual = hrTotals[monthKey]?.total || 0;
+  const softwareActual = softwareTotals[monthKey]?.isReconciled ? softwareTotals[monthKey].actual : 0;
+  const travelActual = travelTotals[monthKey]?.isReconciled ? travelTotals[monthKey].actual : 0;
+  const totalCosts = hrActual + softwareActual + travelActual;
+
+  const { grossProfit, profitPool, tarynShare } = calculateProfitPool(revenue, totalCosts);
+
+  const maxRevenue = Math.max(...Object.values(revenueByClient), 1);
+
+  const navigateMonth = (direction: number) => {
+    let newMonth = selectedMonthIndex + direction;
+    let newYear = selectedYear;
+    if (newMonth < 0) { newMonth = 11; newYear--; }
+    else if (newMonth > 11) { newMonth = 0; newYear++; }
+    setSelectedMonthIndex(newMonth);
+    setSelectedYear(newYear);
+  };
 
   return (
     <PageContainer title="Dashboard">
       <div className="space-y-6">
         {/* Period header */}
-        <div>
-          <h2 className="text-xl font-semibold text-tp-dark font-heading">
-            {formatMonthYear(MOCK_DATA.month)}
-          </h2>
-          <p className="text-sm text-tp-dark-grey">Financial Overview</p>
+        <div className="flex items-center gap-3">
+          <button onClick={() => navigateMonth(-1)} className="p-1 rounded hover:bg-tp-light-grey">
+            <ChevronLeft className="h-5 w-5" />
+          </button>
+          <div>
+            <h2 className="text-xl font-semibold text-tp-dark font-heading">
+              {formatMonthYear(monthDate)}
+            </h2>
+            <p className="text-sm text-tp-dark-grey">Financial Overview</p>
+          </div>
+          <button onClick={() => navigateMonth(1)} className="p-1 rounded hover:bg-tp-light-grey">
+            <ChevronRight className="h-5 w-5" />
+          </button>
         </div>
+
+        {loading && <p className="text-sm text-tp-dark-grey">Loading...</p>}
 
         {/* KPI Cards */}
         <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
           <KPICard
             title="Total Revenue"
-            value={formatGBPRounded(MOCK_DATA.revenue.total)}
+            value={formatGBPRounded(revenue)}
             subtitle="This month"
             icon={PoundSterling}
           />
           <KPICard
             title="Gross Profit"
             value={formatGBPRounded(grossProfit)}
-            subtitle={`${Math.round((grossProfit / MOCK_DATA.revenue.total) * 100)}% margin`}
+            subtitle={revenue > 0 ? `${Math.round((grossProfit / revenue) * 100)}% margin` : "No revenue"}
             icon={TrendingUp}
           />
           <KPICard
-            title="CogniScale Activities"
-            value={String(
-              MOCK_DATA.activities.interviews +
-                MOCK_DATA.activities.roundtables +
-                MOCK_DATA.activities.meetings
-            )}
-            subtitle={`${MOCK_DATA.activities.surveys} surveys completed`}
+            title="Operating Costs"
+            value={formatGBPRounded(totalCosts)}
+            subtitle="Actuals only"
             icon={Users}
           />
           <KPICard
-            title="Pending Invoices"
-            value={String(MOCK_DATA.invoices.pending)}
-            subtitle={`of ${MOCK_DATA.invoices.total} total`}
+            title="Profit Pool"
+            value={formatGBPRounded(profitPool)}
+            subtitle={`Taryn: ${formatGBPRounded(tarynShare)}`}
             icon={FileText}
           />
         </div>
@@ -101,7 +108,7 @@ export function DashboardPage() {
             </div>
             <div className="p-6">
               <div className="space-y-4">
-                {Object.entries(MOCK_DATA.revenue.byClient).map(
+                {Object.entries(revenueByClient).sort(([,a], [,b]) => b - a).map(
                   ([client, amount]) => (
                     <div key={client} className="flex items-center gap-4">
                       <span className="w-32 text-sm text-tp-dark-grey truncate">
@@ -145,23 +152,27 @@ export function DashboardPage() {
             <div className="grid gap-4 sm:grid-cols-3">
               <div className="rounded-lg bg-tp-light p-4">
                 <p className="text-sm text-tp-dark-grey">HR Costs</p>
-                <p className="text-xs text-tp-dark-grey/70 mt-0.5">(incl. 10% bonus)</p>
+                <p className="text-xs text-tp-dark-grey/70 mt-0.5">Actual contractor costs</p>
                 <p className="mt-2 text-xl font-semibold text-tp-dark">
-                  {formatGBPRounded(MOCK_DATA.costs.hr)}
+                  {formatGBPRounded(hrActual)}
                 </p>
               </div>
               <div className="rounded-lg bg-tp-light p-4">
                 <p className="text-sm text-tp-dark-grey">Software etc</p>
-                <p className="text-xs text-tp-dark-grey/70 mt-0.5">Tools & subscriptions</p>
+                <p className="text-xs text-tp-dark-grey/70 mt-0.5">
+                  {softwareTotals[monthKey]?.isReconciled ? "Reconciled actuals" : "Not yet reconciled"}
+                </p>
                 <p className="mt-2 text-xl font-semibold text-tp-dark">
-                  {formatGBPRounded(MOCK_DATA.costs.software)}
+                  {formatGBPRounded(softwareActual)}
                 </p>
               </div>
               <div className="rounded-lg bg-tp-light p-4">
                 <p className="text-sm text-tp-dark-grey">Travel & Expenses</p>
-                <p className="text-xs text-tp-dark-grey/70 mt-0.5">Client visits & events</p>
+                <p className="text-xs text-tp-dark-grey/70 mt-0.5">
+                  {travelTotals[monthKey]?.isReconciled ? "Actual recorded" : "Not yet recorded"}
+                </p>
                 <p className="mt-2 text-xl font-semibold text-tp-dark">
-                  {formatGBPRounded(MOCK_DATA.costs.travel)}
+                  {formatGBPRounded(travelActual)}
                 </p>
               </div>
             </div>
