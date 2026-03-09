@@ -60,20 +60,22 @@ export function ForecastsPage() {
 
   useDataRefresh(handleDataRefresh);
 
-  // Focus input when editing
+  // Focus input only when a new cell starts editing (not on value changes)
+  const editingCellKey = editingCell ? `${editingCell.clientId}-${editingCell.monthIndex}` : null;
   useEffect(() => {
-    if (editingCell && inputRef.current) {
+    if (editingCellKey && inputRef.current) {
       inputRef.current.focus();
       inputRef.current.select();
     }
-  }, [editingCell]);
+  }, [editingCellKey]);
 
+  const editingAnnualKey = editingAnnual?.clientId ?? null;
   useEffect(() => {
-    if (editingAnnual && annualInputRef.current) {
+    if (editingAnnualKey && annualInputRef.current) {
       annualInputRef.current.focus();
       annualInputRef.current.select();
     }
-  }, [editingAnnual]);
+  }, [editingAnnualKey]);
 
   // Build lookup: clientId -> monthKey -> amount
   const forecastLookup: Record<string, Record<string, number>> = {};
