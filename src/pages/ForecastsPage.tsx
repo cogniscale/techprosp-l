@@ -48,6 +48,8 @@ export function ForecastsPage() {
     clients,
     loading,
     upsertForecast,
+    batchUpsertForecasts,
+    deleteForecast,
     refetch,
   } = useForecasts(selectedYear);
 
@@ -98,20 +100,30 @@ export function ForecastsPage() {
     if (!editingCell) return;
 
     const monthKey = `${selectedYear}-${String(editingCell.monthIndex + 1).padStart(2, "0")}-01`;
+    const lookupKey = `${selectedYear}-${String(editingCell.monthIndex + 1).padStart(2, "0")}`;
     const newValue = parseFloat(editingCell.value) || 0;
+    const currentValue = forecastLookup[editingCell.clientId]?.[lookupKey] || 0;
 
-    if (newValue <= 0) {
-      // Don't save zero/empty values
+    if (newValue < 0 || newValue === currentValue) {
       setEditingCell(null);
       return;
     }
 
     setSaving(true);
-    await upsertForecast({
-      client_id: editingCell.clientId,
-      forecast_month: monthKey,
-      forecast_amount: newValue,
-    });
+    if (newValue === 0) {
+      const existing = forecasts.find(
+        (f) => f.client_id === editingCell.clientId && f.forecast_month.startsWith(lookupKey)
+      );
+      if (existing) {
+        await deleteForecast(existing.id);
+      }
+    } else {
+      await upsertForecast({
+        client_id: editingCell.clientId,
+        forecast_month: monthKey,
+        forecast_amount: newValue,
+      });
+    }
     setSaving(false);
     setEditingCell(null);
   };
@@ -150,19 +162,19 @@ export function ForecastsPage() {
       return;
     }
 
-    const monthlyAmount = Math.round((annualAmount / 12) * 100) / 100;
+    // Distribute evenly, put rounding remainder in the last month
+    const monthlyBase = Math.floor((annualAmount / 12) * 100) / 100;
+    const lastMonth = Math.round((annualAmount - monthlyBase * 11) * 100) / 100;
 
     setDistributing(true);
 
-    // Create forecasts for all 12 months
-    for (let monthIndex = 0; monthIndex < 12; monthIndex++) {
-      const monthKey = `${selectedYear}-${String(monthIndex + 1).padStart(2, "0")}-01`;
-      await upsertForecast({
-        client_id: editingAnnual.clientId,
-        forecast_month: monthKey,
-        forecast_amount: monthlyAmount,
-      });
-    }
+    const entries = Array.from({ length: 12 }, (_, i) => ({
+      client_id: editingAnnual.clientId,
+      forecast_month: `${selectedYear}-${String(i + 1).padStart(2, "0")}-01`,
+      forecast_amount: i < 11 ? monthlyBase : lastMonth,
+    }));
+
+    await batchUpsertForecasts(entries);
 
     setDistributing(false);
     setEditingAnnual(null);

@@ -98,6 +98,46 @@ export function useForecasts(year: number) {
     }
   };
 
+  const batchUpsertForecasts = async (
+    entries: Array<{
+      client_id: string;
+      forecast_month: string;
+      forecast_amount: number;
+    }>
+  ) => {
+    try {
+      for (const entry of entries) {
+        const { data: existing } = await supabase
+          .from("revenue_forecasts")
+          .select("id")
+          .eq("client_id", entry.client_id)
+          .eq("forecast_month", entry.forecast_month)
+          .single();
+
+        if (existing) {
+          const { error } = await supabase
+            .from("revenue_forecasts")
+            .update({ forecast_amount: entry.forecast_amount })
+            .eq("id", existing.id);
+          if (error) throw error;
+        } else {
+          const { error } = await supabase
+            .from("revenue_forecasts")
+            .insert(entry);
+          if (error) throw error;
+        }
+      }
+
+      await fetchForecasts();
+      return { success: true };
+    } catch (err) {
+      return {
+        success: false,
+        error: err instanceof Error ? err.message : "Failed to save forecasts",
+      };
+    }
+  };
+
   const deleteForecast = async (forecastId: string) => {
     try {
       const { error } = await supabase
@@ -123,6 +163,7 @@ export function useForecasts(year: number) {
     loading,
     error,
     upsertForecast,
+    batchUpsertForecasts,
     deleteForecast,
     refetch: fetchForecasts,
   };
