@@ -212,6 +212,13 @@ export function SoftwareCostsPage() {
     await updateSoftwareItem(item.id, { default_monthly_cost: value });
   };
 
+  const handleDefaultAllocationChange = async (item: SoftwareItem, newPercent: string) => {
+    const value = parseInt(newPercent, 10);
+    if (isNaN(value) || value < 0 || value > 100) return;
+    if (value === item.techpros_allocation_percent) return;
+    await updateSoftwareItem(item.id, { techpros_allocation_percent: value });
+  };
+
   // Handle CSV import
   const handleCSVImport = async (
     rows: Array<{ itemId: string; month: string; amount: number; isNew: boolean; newName?: string }>
@@ -371,9 +378,18 @@ export function SoftwareCostsPage() {
                         />
                       </td>
 
-                      {/* Allocation % */}
-                      <td className="px-2 py-1.5 text-center text-tp-dark-grey text-xs">
-                        {item.techpros_allocation_percent}%
+                      {/* Allocation % (editable) */}
+                      <td className="px-2 py-1.5 text-center">
+                        <input
+                          type="number"
+                          min="0"
+                          max="100"
+                          step="1"
+                          className="w-12 text-center bg-transparent border-0 focus:ring-1 focus:ring-tp-blue rounded px-1 py-0.5 text-tp-dark-grey text-xs"
+                          defaultValue={item.techpros_allocation_percent}
+                          onBlur={(e) => handleDefaultAllocationChange(item, e.target.value)}
+                          onKeyDown={(e) => { if (e.key === "Enter") e.currentTarget.blur(); }}
+                        />
                       </td>
 
                       {/* Monthly cells - Tgt and Act columns */}
