@@ -41,13 +41,14 @@ export function TravelCostsPage() {
 
   useDataRefresh(handleDataRefresh);
 
-  // Focus input when editing
+  // Focus input only when a new cell starts editing (not on value changes)
+  const editingCellKey = editingCell ? `${editingCell.monthIndex}-${editingCell.field}` : null;
   useEffect(() => {
-    if (editingCell && inputRef.current) {
+    if (editingCellKey && inputRef.current) {
       inputRef.current.focus();
       inputRef.current.select();
     }
-  }, [editingCell]);
+  }, [editingCellKey]);
 
   const handleCellClick = (monthIndex: number, field: "budgeted" | "actual") => {
     const monthKey = `${selectedYear}-${String(monthIndex + 1).padStart(2, "0")}`;

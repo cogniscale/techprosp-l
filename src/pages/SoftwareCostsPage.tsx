@@ -74,13 +74,14 @@ export function SoftwareCostsPage() {
 
   useDataRefresh(handleDataRefresh);
 
-  // Focus input when editing cell
+  // Focus input only when a new cell starts editing (not on value changes)
+  const editingCellKey = editingCell ? `${editingCell.itemId}-${editingCell.monthIndex}` : null;
   useEffect(() => {
-    if (editingCell && inputRef.current) {
+    if (editingCellKey && inputRef.current) {
       inputRef.current.focus();
       inputRef.current.select();
     }
-  }, [editingCell]);
+  }, [editingCellKey]);
 
   // Build a lookup for cost overrides: { itemId: { monthKey: { cost, allocation } } }
   const costLookup: Record<string, Record<string, { actual_cost: number | null; techpros_allocation_percent: number | null }>> = {};
