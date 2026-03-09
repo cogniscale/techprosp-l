@@ -207,6 +207,18 @@ export function SoftwareCostsPage() {
     await deleteSoftwareItem(itemId);
   };
 
+  const handleNameChange = async (item: SoftwareItem, newName: string) => {
+    const trimmed = newName.trim();
+    if (!trimmed || trimmed === item.name) return;
+    await updateSoftwareItem(item.id, { name: trimmed });
+  };
+
+  const handleVendorChange = async (item: SoftwareItem, newVendor: string) => {
+    const trimmed = newVendor.trim();
+    if (trimmed === (item.vendor || "")) return;
+    await updateSoftwareItem(item.id, { vendor: trimmed || null });
+  };
+
   const handleDefaultCostChange = async (item: SoftwareItem, newDefault: string) => {
     const value = parseFloat(newDefault);
     if (isNaN(value)) return;
@@ -358,13 +370,24 @@ export function SoftwareCostsPage() {
                       key={item.id}
                       className="border-b border-tp-light-grey/50 hover:bg-tp-light/30"
                     >
-                      {/* Item name */}
+                      {/* Item name (editable) */}
                       <td className="px-3 py-1.5 text-tp-dark font-medium sticky left-0 bg-white">
                         <div className="flex flex-col">
-                          <span>{item.name}</span>
-                          {item.vendor && (
-                            <span className="text-xs text-tp-dark-grey">{item.vendor}</span>
-                          )}
+                          <input
+                            type="text"
+                            className="w-full bg-transparent border-0 focus:ring-1 focus:ring-tp-blue rounded px-1 py-0 font-medium text-tp-dark"
+                            defaultValue={item.name}
+                            onBlur={(e) => handleNameChange(item, e.target.value)}
+                            onKeyDown={(e) => { if (e.key === "Enter") e.currentTarget.blur(); }}
+                          />
+                          <input
+                            type="text"
+                            className="w-full bg-transparent border-0 focus:ring-1 focus:ring-tp-blue rounded px-1 py-0 text-xs text-tp-dark-grey"
+                            defaultValue={item.vendor || ""}
+                            placeholder="vendor"
+                            onBlur={(e) => handleVendorChange(item, e.target.value)}
+                            onKeyDown={(e) => { if (e.key === "Enter") e.currentTarget.blur(); }}
+                          />
                         </div>
                       </td>
 
