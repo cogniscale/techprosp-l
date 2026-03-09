@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useRef, useEffect } from "react";
+import React, { useState, useCallback } from "react";
 import { ChevronLeft, ChevronRight, Plus, Trash2, Upload } from "lucide-react";
 import { PageContainer } from "@/components/layout/PageContainer";
 import { Button } from "@/components/ui/button";
@@ -21,13 +21,6 @@ const MONTHS = [
   "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
 ];
 
-interface EditingCell {
-  itemId: string;
-  monthIndex: number;
-  value: string;
-  allocationValue: string;
-}
-
 interface NewItemForm {
   name: string;
   vendor: string;
@@ -38,7 +31,6 @@ interface NewItemForm {
 export function SoftwareCostsPage() {
   const currentYear = new Date().getFullYear();
   const [selectedYear, setSelectedYear] = useState(currentYear);
-  const [editingCell, setEditingCell] = useState<EditingCell | null>(null);
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [showImportDialog, setShowImportDialog] = useState(false);
   const [newItem, setNewItem] = useState<NewItemForm>({
@@ -48,7 +40,6 @@ export function SoftwareCostsPage() {
     techpros_allocation_percent: "100",
   });
   const [saving, setSaving] = useState(false);
-  const inputRef = useRef<HTMLInputElement>(null);
 
   const {
     activeSoftwareItems,
@@ -73,15 +64,6 @@ export function SoftwareCostsPage() {
   }, [refetchItems, refetchCosts]);
 
   useDataRefresh(handleDataRefresh);
-
-  // Focus input only when a new cell starts editing (not on value changes)
-  const editingCellKey = editingCell ? `${editingCell.itemId}-${editingCell.monthIndex}` : null;
-  useEffect(() => {
-    if (editingCellKey && inputRef.current) {
-      inputRef.current.focus();
-      inputRef.current.select();
-    }
-  }, [editingCellKey]);
 
   // Build a lookup for cost overrides: { itemId: { monthKey: { cost, allocation } } }
   const costLookup: Record<string, Record<string, { actual_cost: number | null; techpros_allocation_percent: number | null }>> = {};
@@ -123,60 +105,30 @@ export function SoftwareCostsPage() {
     return override?.techpros_allocation_percent !== undefined && override?.techpros_allocation_percent !== null;
   };
 
-  const handleCellClick = (item: SoftwareItem, monthIndex: number) => {
-    const effectiveCost = getEffectiveCost(item, monthIndex);
-    const effectiveAllocation = getEffectiveAllocation(item, monthIndex);
-    setEditingCell({
-      itemId: item.id,
-      monthIndex,
-      value: effectiveCost.toFixed(2),
-      allocationValue: effectiveAllocation.toString(),
-    });
-  };
+  const handleActualCostChange = async (item: SoftwareItem, monthIndex: number, newValue: string) => {
+    const value = parseFloat(newValue);
+    const monthKey = `${selectedYear}-${String(monthIndex + 1).padStart(2, "0")}-01`;
+    const lookupKey = `${selectedYear}-${String(monthIndex + 1).padStart(2, "0")}`;
+    const currentOverride = costLookup[item.id]?.[lookupKey];
 
-  const handleCellSave = async () => {
-    if (!editingCell) return;
+    // If empty or matches default, store null (use default)
+    const actualCost = isNaN(value) || Math.abs(value - Number(item.default_monthly_cost)) < 0.01
+      ? null
+      : value;
 
-    const item = activeSoftwareItems.find((i) => i.id === editingCell.itemId);
-    if (!item) return;
+    // Preserve existing allocation override
+    const allocationOverride = currentOverride?.techpros_allocation_percent ?? null;
 
-    const newValue = parseFloat(editingCell.value);
-    const newAllocation = parseInt(editingCell.allocationValue);
-    const monthKey = `${selectedYear}-${String(editingCell.monthIndex + 1).padStart(2, "0")}-01`;
+    // Skip if nothing changed
+    if (actualCost === null && !currentOverride) return;
+    if (actualCost === (currentOverride?.actual_cost ?? null) && allocationOverride === (currentOverride?.techpros_allocation_percent ?? null)) return;
 
-    // If value equals default, remove override (set to null)
-    const actualCost =
-      Math.abs(newValue - Number(item.default_monthly_cost)) < 0.01
-        ? null
-        : newValue;
-
-    // If allocation equals default, remove override (set to null)
-    const allocationOverride =
-      newAllocation === item.techpros_allocation_percent
-        ? null
-        : newAllocation;
-
-    setSaving(true);
     await upsertSoftwareCost({
       software_item_id: item.id,
       cost_month: monthKey,
       actual_cost: actualCost,
       techpros_allocation_percent: allocationOverride,
     });
-    setSaving(false);
-    setEditingCell(null);
-  };
-
-  const handleCellCancel = () => {
-    setEditingCell(null);
-  };
-
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === "Enter") {
-      handleCellSave();
-    } else if (e.key === "Escape") {
-      handleCellCancel();
-    }
   };
 
   const handleAddItem = async () => {
@@ -432,24 +384,20 @@ export function SoftwareCostsPage() {
                                 {formatGBP(defaultCost).replace("£", "")}
                               </span>
                             </td>
-                            {/* Act (Actual) column - click to open edit dialog */}
+                            {/* Act (Actual) column - inline editable */}
                             <td className={`px-1 py-1 text-center ${hasOverride ? "bg-tp-blue/5" : ""}`}>
-                              <button
-                                onClick={() => handleCellClick(item, monthIndex)}
-                                className={`w-full text-center px-1 py-1 rounded hover:bg-tp-light transition-colors text-xs tabular-nums ${
-                                  hasOverride
-                                    ? "text-tp-blue font-medium bg-tp-blue/10"
-                                    : "text-tp-dark"
+                              <input
+                                type="number"
+                                step="0.01"
+                                className={`w-full text-center bg-transparent border-0 focus:ring-1 focus:ring-tp-blue rounded px-0.5 py-0.5 text-xs tabular-nums ${
+                                  hasOverride ? "text-tp-blue font-medium" : "text-tp-dark-grey"
                                 }`}
+                                defaultValue={hasOverride ? effectiveCost.toFixed(2) : ""}
+                                placeholder="-"
+                                onBlur={(e) => handleActualCostChange(item, monthIndex, e.target.value)}
+                                onKeyDown={(e) => { if (e.key === "Enter") e.currentTarget.blur(); }}
                                 title={hasAllocOverride ? `Allocation: ${effectiveAllocation}%` : undefined}
-                              >
-                                {hasOverride ? (
-                                  <>
-                                    {formatGBP(effectiveCost).replace("£", "")}
-                                    {hasAllocOverride && <span className="text-tp-green ml-0.5">*</span>}
-                                  </>
-                                ) : "-"}
-                              </button>
+                              />
                             </td>
                           </React.Fragment>
                         );
@@ -612,57 +560,6 @@ export function SoftwareCostsPage() {
         onCreateItem={handleCreateSoftwareItem}
       />
 
-      {/* Edit Cost Dialog */}
-      <Dialog open={!!editingCell} onOpenChange={(open) => !open && setEditingCell(null)}>
-        <DialogContent className="max-w-sm">
-          <DialogHeader>
-            <DialogTitle>
-              Edit {editingCell && activeSoftwareItems.find(i => i.id === editingCell.itemId)?.name}
-              {editingCell && ` - ${MONTHS[editingCell.monthIndex]} ${selectedYear}`}
-            </DialogTitle>
-          </DialogHeader>
-          {editingCell && (
-            <div className="space-y-4 py-4">
-              <div>
-                <label className="text-sm font-medium text-tp-dark">Cost (GBP)</label>
-                <Input
-                  ref={inputRef}
-                  type="number"
-                  step="0.01"
-                  value={editingCell.value}
-                  onChange={(e) => setEditingCell({ ...editingCell, value: e.target.value })}
-                  onKeyDown={handleKeyDown}
-                />
-                <p className="text-xs text-tp-dark-grey mt-1">
-                  Default: {formatGBP(Number(activeSoftwareItems.find(i => i.id === editingCell.itemId)?.default_monthly_cost || 0))}
-                </p>
-              </div>
-              <div>
-                <label className="text-sm font-medium text-tp-dark">TechPros Allocation %</label>
-                <Input
-                  type="number"
-                  min="0"
-                  max="100"
-                  value={editingCell.allocationValue}
-                  onChange={(e) => setEditingCell({ ...editingCell, allocationValue: e.target.value })}
-                  onKeyDown={handleKeyDown}
-                />
-                <p className="text-xs text-tp-dark-grey mt-1">
-                  Default: {activeSoftwareItems.find(i => i.id === editingCell.itemId)?.techpros_allocation_percent}%
-                </p>
-              </div>
-            </div>
-          )}
-          <DialogFooter>
-            <Button variant="outline" onClick={handleCellCancel}>
-              Cancel
-            </Button>
-            <Button onClick={handleCellSave} disabled={saving}>
-              {saving ? "Saving..." : "Save"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </PageContainer>
   );
 }
